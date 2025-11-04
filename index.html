@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eBizCard - Secure Contact Exchange</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div id="loading" class="loading">
+            <p>Validating access key...</p>
+        </div>
+        
+        <div id="error-message" class="error-message hidden">
+            <h2>Access Denied</h2>
+            <p id="error-text"></p>
+        </div>
+        
+        <div id="card-container" class="card-container hidden">
+            <div class="business-card">
+                <div class="card-header">
+                    <h1 id="card-name">John Doe</h1>
+                    <p id="card-title">Software Engineer</p>
+                </div>
+                
+                <div class="card-body">
+                    <div class="contact-info">
+                        <div class="info-item">
+                            <span class="icon">📧</span>
+                            <span id="card-email">john.doe@example.com</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="icon">📱</span>
+                            <span id="card-phone">+1 (555) 123-4567</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="icon">🏢</span>
+                            <span id="card-company">Tech Company Inc.</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="icon">🌐</span>
+                            <a id="card-website" href="#" target="_blank">www.example.com</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <button id="save-contact" class="btn-save">Save Contact</button>
+                </div>
+            </div>
+            
+            <div class="security-notice">
+                <p>🔒 This is a secure one-time access link. The access key has been used and is no longer valid.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
