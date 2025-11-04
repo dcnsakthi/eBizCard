@@ -56,7 +56,7 @@
             // Fetch the keys database
             const response = await fetch('keys.json');
             if (!response.ok) {
-                throw new Error('Failed to load keys database');
+                throw new Error('Unable to validate access key. Please check your internet connection and try again.');
             }
             
             const data = await response.json();
@@ -91,16 +91,25 @@
     
     // Get list of used keys from localStorage
     function getUsedKeys() {
-        const stored = localStorage.getItem('ebizcard_used_keys');
-        return stored ? JSON.parse(stored) : [];
+        try {
+            const stored = localStorage.getItem('ebizcard_used_keys');
+            return stored ? JSON.parse(stored) : [];
+        } catch (error) {
+            console.error('Error reading used keys from localStorage:', error);
+            return [];
+        }
     }
     
     // Mark a key as used
     function markKeyAsUsed(key) {
-        const usedKeys = getUsedKeys();
-        if (!usedKeys.includes(key)) {
-            usedKeys.push(key);
-            localStorage.setItem('ebizcard_used_keys', JSON.stringify(usedKeys));
+        try {
+            const usedKeys = getUsedKeys();
+            if (!usedKeys.includes(key)) {
+                usedKeys.push(key);
+                localStorage.setItem('ebizcard_used_keys', JSON.stringify(usedKeys));
+            }
+        } catch (error) {
+            console.error('Error marking key as used:', error);
         }
     }
     

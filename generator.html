@@ -234,7 +234,7 @@
         const baseURL = window.location.origin + window.location.pathname.replace('generator.html', 'index.html');
         
         function generateSecureKey(length = 20) {
-            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let key = '';
             const array = new Uint8Array(length);
             crypto.getRandomValues(array);
@@ -314,6 +314,7 @@
                 alert('URL copied to clipboard!');
             }).catch(err => {
                 console.error('Failed to copy:', err);
+                alert('Failed to copy URL to clipboard. Please copy manually: ' + text);
             });
         }
         
@@ -323,6 +324,7 @@
                 alert('All URLs copied to clipboard!');
             }).catch(err => {
                 console.error('Failed to copy:', err);
+                alert('Failed to copy URLs to clipboard. Please use the individual copy buttons.');
             });
         }
         
