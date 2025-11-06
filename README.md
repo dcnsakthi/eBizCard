@@ -36,18 +36,17 @@ Simply scan the QR code or click the link you received. You'll see the contact i
    };
    ```
 
-2. **Configure Admin Authentication**: Edit `config.js` to set your admin credentials:
-   ```javascript
-   const CONFIG = {
-       ADMIN_AUTH_USER_NAME: 'your_admin_username',
-       ADMIN_AUTH_SECRET_KEY: 'your_secure_password'
-   };
-   ```
-   **Important**: For production use, consider implementing server-side authentication for better security.
+2. **Configure Admin Authentication**: Set up GitHub repository secrets for secure authentication:
+   - Go to your repository Settings → Secrets and variables → Actions
+   - Add two repository secrets:
+     - `ADMIN_AUTH_USER_NAME`: Your admin username
+     - `ADMIN_AUTH_SECRET_KEY`: Your secure admin password
+   
+   **Note**: The secrets are automatically injected into `config.js` during deployment via GitHub Actions. The default values in the repository are only used for local development.
 
 3. **Generate Access Keys**: Open `generator.html` in your browser
    - You will be prompted to enter admin credentials
-   - Enter the username and password configured in `config.js`
+   - Enter the username and password you configured in GitHub Secrets
    - Specify how many keys you need
    - Click "Generate Keys"
    - Download the `keys.json` file
@@ -57,6 +56,7 @@ Simply scan the QR code or click the link you received. You'll see the contact i
    - Push your changes to GitHub
    - Enable GitHub Pages in repository settings
    - Select the main/master branch as the source
+   - The GitHub Actions workflow will automatically inject your secrets during deployment
 
 5. **Share Your Card**:
    - Download the QR codes from the generator
@@ -65,7 +65,8 @@ Simply scan the QR code or click the link you received. You'll see the contact i
 
 ## Security Features
 
-- **Admin Authentication**: QR code generation is protected by Basic Authentication
+- **Admin Authentication**: QR code generation is protected by Basic Authentication using GitHub Secrets
+- **Secure Credential Management**: Admin credentials are stored as GitHub repository secrets and injected during deployment
 - **One-Time Use**: Keys are marked as used after first access (stored in localStorage)
 - **Cryptographically Secure**: Keys are generated using `crypto.getRandomValues()`
 - **No Server Required**: Fully client-side validation for privacy
