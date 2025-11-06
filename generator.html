@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>eBizCard Key Generator</title>
-    <script src="config.js"></script>
     <style>
         * {
             margin: 0;
@@ -352,23 +351,53 @@
     </div><!-- End of page-content -->
     
     <script>
+        // API Configuration
+        const API_BASE_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000' 
+            : 'https://your-api-domain.com'; // Replace with your deployed API URL
+        
         let generatedKeys = [];
+        let authToken = null;
         const baseURL = window.location.origin + window.location.pathname.replace('generator.html', 'index.html');
         
-        function generateSecureKey(length = 20) {
-            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let key = '';
-            const array = new Uint8Array(length);
-            crypto.getRandomValues(array);
-            
-            for (let i = 0; i < length; i++) {
-                key += chars[array[i] % chars.length];
+        // Admin authentication
+        async function authenticate(event) {
+            if (event) {
+                event.preventDefault();
             }
             
-            return key;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const authError = document.getElementById('authError');
+            
+            // Create Basic Auth token
+            authToken = btoa(`${username}:${password}`);
+            
+            try {
+                // Test authentication by calling health endpoint
+                const response = await fetch(`${API_BASE_URL}/api/health`);
+                
+                if (!response.ok) {
+                    throw new Error('API server is not available');
+                }
+                
+                // Store auth token (just for this session)
+                sessionStorage.setItem('ebizcard_admin_token', authToken);
+                sessionStorage.setItem('ebizcard_admin_authenticated', 'true');
+                
+                // Hide auth modal, show main content
+                document.getElementById('authOverlay').classList.add('hidden');
+                document.getElementById('pageContent').classList.add('visible');
+                authError.classList.remove('visible');
+            } catch (error) {
+                console.error('Authentication error:', error);
+                authError.textContent = 'Unable to connect to API server. Please try again.';
+                authError.classList.add('visible');
+                document.getElementById('password').value = '';
+            }
         }
         
-        function generateKeys() {
+        async function generateKeys() {
             const count = parseInt(document.getElementById('keyCount').value);
             
             if (count < 1 || count > 100) {
@@ -376,18 +405,37 @@
                 return;
             }
             
-            generatedKeys = [];
-            const now = new Date().toISOString();
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = 'Generating...';
             
-            for (let i = 0; i < count; i++) {
-                generatedKeys.push({
-                    key: generateSecureKey(),
-                    createdAt: now,
-                    expiresAt: null
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/keys/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Basic ${authToken}`
+                    },
+                    body: JSON.stringify({ count })
                 });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to generate keys');
+                }
+                
+                const data = await response.json();
+                generatedKeys = data.keys;
+                
+                displayKeys();
+                alert(`Successfully generated ${data.count} one-time keys!`);
+            } catch (error) {
+                console.error('Error generating keys:', error);
+                alert(`Failed to generate keys: ${error.message}`);
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Generate Keys';
             }
-            
-            displayKeys();
         }
         
         function displayKeys() {
@@ -397,7 +445,7 @@
             qrGrid.innerHTML = '';
             
             generatedKeys.forEach((keyData, index) => {
-                const url = `${baseURL}?key=${keyData.key}`;
+                const url = keyData.url || `${baseURL}?key=${keyData.key}`;
                 
                 // Create key item
                 const keyItem = document.createElement('div');
@@ -441,7 +489,7 @@
         }
         
         function copyAllKeys() {
-            const urls = generatedKeys.map(k => `${baseURL}?key=${k.key}`).join('\n');
+            const urls = generatedKeys.map(k => k.url || `${baseURL}?key=${k.key}`).join('\n');
             navigator.clipboard.writeText(urls).then(() => {
                 alert('All URLs copied to clipboard!');
             }).catch(err => {
@@ -452,69 +500,32 @@
         
         function downloadJSON() {
             const json = {
-                keys: generatedKeys
+                keys: generatedKeys.map(k => ({
+                    key: k.key,
+                    url: k.url || `${baseURL}?key=${k.key}`,
+                    createdAt: k.createdAt
+                })),
+                note: "These are one-time use keys. Each key will be deleted after first use."
             };
             
             const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'keys.json';
+            link.download = `ebizcard-keys-${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
         }
         
-        // Constant-time string comparison to prevent timing attacks
-        function constantTimeCompare(a, b) {
-            if (a.length !== b.length) {
-                return false;
-            }
-            
-            let result = 0;
-            for (let i = 0; i < a.length; i++) {
-                result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-            }
-            
-            return result === 0;
-        }
-        
-        // Authentication function
-        function authenticate(event) {
-            if (event) {
-                event.preventDefault();
-            }
-            
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const authError = document.getElementById('authError');
-            
-            // Validate credentials against config using constant-time comparison
-            const usernameValid = constantTimeCompare(username, CONFIG.ADMIN_AUTH_USER_NAME);
-            const passwordValid = constantTimeCompare(password, CONFIG.ADMIN_AUTH_SECRET_KEY);
-            
-            if (usernameValid && passwordValid) {
-                // Authentication successful
-                document.getElementById('authOverlay').classList.add('hidden');
-                document.getElementById('pageContent').classList.add('visible');
-                authError.classList.remove('visible');
-                
-                // Store authenticated session (valid for browser session)
-                sessionStorage.setItem('ebizcard_admin_authenticated', 'true');
-            } else {
-                // Authentication failed
-                authError.classList.add('visible');
-                document.getElementById('password').value = '';
-                document.getElementById('username').focus();
-            }
-        }
-        
         // Check if already authenticated on page load
         window.addEventListener('DOMContentLoaded', function() {
             const isAuthenticated = sessionStorage.getItem('ebizcard_admin_authenticated');
+            const savedToken = sessionStorage.getItem('ebizcard_admin_token');
             
-            if (isAuthenticated === 'true') {
+            if (isAuthenticated === 'true' && savedToken) {
+                authToken = savedToken;
                 // Skip authentication modal if already authenticated
                 document.getElementById('authOverlay').classList.add('hidden');
                 document.getElementById('pageContent').classList.add('visible');

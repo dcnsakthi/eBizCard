@@ -1,0 +1,87 @@
+name: Generate and Deploy with Keys
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      generate_new_keys:
+        description: 'Number of new keys to generate'
+        required: false
+        default: '0'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  generate-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Generate keys.json from secrets
+        env:
+          VALID_KEYS: ${{ secrets.VALID_KEYS }}
+        run: |
+          # Create keys.json from the VALID_KEYS secret
+          # Expected format: comma-separated list of keys
+          
+          if [ -z "$VALID_KEYS" ]; then
+            echo "Warning: VALID_KEYS secret is not set. Creating empty keys file."
+            echo '{"keys":[]}' > keys.json
+          else
+            # Convert comma-separated keys to JSON array
+            echo '{"keys":[' > keys.json
+            
+            IFS=',' read -ra KEYS_ARRAY <<< "$VALID_KEYS"
+            FIRST=true
+            
+            for key in "${KEYS_ARRAY[@]}"; do
+              # Trim whitespace
+              key=$(echo "$key" | xargs)
+              
+              if [ ! -z "$key" ]; then
+                if [ "$FIRST" = true ]; then
+                  FIRST=false
+                else
+                  echo ',' >> keys.json
+                fi
+                echo -n "\"$key\"" >> keys.json
+              fi
+            done
+            
+            echo '' >> keys.json
+            echo ']}' >> keys.json
+          fi
+          
+          echo "Generated keys.json:"
+          cat keys.json
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

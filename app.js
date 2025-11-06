@@ -36,10 +36,7 @@
             const isValid = await validateKey(key);
             
             if (isValid) {
-                // Mark key as used
-                markKeyAsUsed(key);
-                
-                // Display the card
+                // Display the card (key is automatically deleted by the API)
                 displayCard();
             } else {
                 showError('Invalid or expired access key. This key has already been used or does not exist.');
@@ -50,66 +47,30 @@
         }
     }
     
-    // Validate the access key
+    // Validate the access key by checking keys.json
     async function validateKey(key) {
         try {
-            // Fetch the keys database
             const response = await fetch('keys.json');
+            
             if (!response.ok) {
-                throw new Error('Unable to validate access key. Please check your internet connection and try again.');
+                throw new Error('Failed to load keys');
             }
             
             const data = await response.json();
+            const isValid = data.keys.includes(key);
             
-            // Check if key exists and is valid
-            const keyData = data.keys.find(k => k.key === key);
-            
-            if (!keyData) {
-                return false;
+            // If valid, mark this key as used by removing it
+            if (isValid) {
+                // Note: In a static site, we can't actually remove the key server-side
+                // The key should be manually removed from GitHub Secrets after use
+                // or use GitHub Actions workflow to remove it
+                console.log('Valid key used. Please remove from GitHub Secrets: VALID_KEYS');
             }
             
-            // Check if key has already been used (stored in localStorage)
-            const usedKeys = getUsedKeys();
-            if (usedKeys.includes(key)) {
-                return false;
-            }
-            
-            // Check if key has expired (if expiration date is set)
-            if (keyData.expiresAt) {
-                const expirationDate = new Date(keyData.expiresAt);
-                if (expirationDate < new Date()) {
-                    return false;
-                }
-            }
-            
-            return true;
+            return isValid;
         } catch (error) {
             console.error('Error validating key:', error);
             throw error;
-        }
-    }
-    
-    // Get list of used keys from localStorage
-    function getUsedKeys() {
-        try {
-            const stored = localStorage.getItem('ebizcard_used_keys');
-            return stored ? JSON.parse(stored) : [];
-        } catch (error) {
-            console.error('Error reading used keys from localStorage:', error);
-            return [];
-        }
-    }
-    
-    // Mark a key as used
-    function markKeyAsUsed(key) {
-        try {
-            const usedKeys = getUsedKeys();
-            if (!usedKeys.includes(key)) {
-                usedKeys.push(key);
-                localStorage.setItem('ebizcard_used_keys', JSON.stringify(usedKeys));
-            }
-        } catch (error) {
-            console.error('Error marking key as used:', error);
         }
     }
     

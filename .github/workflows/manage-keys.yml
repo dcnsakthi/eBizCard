@@ -1,0 +1,168 @@
+name: Manage One-Time Keys
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - add_keys
+          - remove_key
+          - list_keys
+      num_keys:
+        description: 'Number of keys to add (for add_keys action)'
+        required: false
+        default: '1'
+      key_to_remove:
+        description: 'Key to remove (for remove_key action)'
+        required: false
+
+jobs:
+  manage-keys:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm install @octokit/rest
+      
+      - name: Manage Keys
+        env:
+          GITHUB_TOKEN: ${{ secrets.EBIZCARD_PAT_TOKEN }}
+          VALID_KEYS: ${{ secrets.VALID_KEYS }}
+          ACTION: ${{ github.event.inputs.action }}
+          NUM_KEYS: ${{ github.event.inputs.num_keys }}
+          KEY_TO_REMOVE: ${{ github.event.inputs.key_to_remove }}
+        run: |
+          node << 'EOF'
+          const crypto = require('crypto');
+          const { Octokit } = require('@octokit/rest');
+          
+          const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+          const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+          
+          function generateSecureKey(length = 32) {
+            return crypto.randomBytes(length).toString('base64url');
+          }
+          
+          async function getPublicKey() {
+            const { data } = await octokit.actions.getRepoPublicKey({
+              owner,
+              repo
+            });
+            return data;
+          }
+          
+          function encryptSecret(secretValue, publicKey) {
+            const sodium = require('libsodium-wrappers');
+            return sodium.ready.then(() => {
+              const binkey = sodium.from_base64(publicKey, sodium.base64_variants.ORIGINAL);
+              const binsec = sodium.from_string(secretValue);
+              const encBytes = sodium.crypto_box_seal(binsec, binkey);
+              return sodium.to_base64(encBytes, sodium.base64_variants.ORIGINAL);
+            });
+          }
+          
+          async function updateSecret(name, value) {
+            const publicKey = await getPublicKey();
+            const encryptedValue = await encryptSecret(value, publicKey.key);
+            
+            await octokit.actions.createOrUpdateRepoSecret({
+              owner,
+              repo,
+              secret_name: name,
+              encrypted_value: encryptedValue,
+              key_id: publicKey.key_id
+            });
+          }
+          
+          async function getCurrentKeys() {
+            const keysString = process.env.VALID_KEYS || '';
+            return keysString ? keysString.split(',').map(k => k.trim()).filter(k => k) : [];
+          }
+          
+          async function main() {
+            const action = process.env.ACTION;
+            const currentKeys = await getCurrentKeys();
+            
+            console.log(`Current number of keys: ${currentKeys.length}`);
+            
+            if (action === 'list_keys') {
+              console.log('\nCurrent keys:');
+              currentKeys.forEach((key, index) => {
+                console.log(`${index + 1}. ${key}`);
+              });
+              return;
+            }
+            
+            if (action === 'add_keys') {
+              const numKeys = parseInt(process.env.NUM_KEYS) || 1;
+              console.log(`\nGenerating ${numKeys} new key(s)...`);
+              
+              const newKeys = [];
+              for (let i = 0; i < numKeys; i++) {
+                newKeys.push(generateSecureKey());
+              }
+              
+              const updatedKeys = [...currentKeys, ...newKeys];
+              await updateSecret('VALID_KEYS', updatedKeys.join(','));
+              
+              console.log('\n✅ New keys generated:');
+              newKeys.forEach((key, index) => {
+                console.log(`${index + 1}. ${key}`);
+                console.log(`   URL: https://${owner}.github.io/${repo}/?key=${key}`);
+              });
+              
+              console.log(`\n✅ Total keys now: ${updatedKeys.length}`);
+              return;
+            }
+            
+            if (action === 'remove_key') {
+              const keyToRemove = process.env.KEY_TO_REMOVE;
+              
+              if (!keyToRemove) {
+                console.error('❌ Error: KEY_TO_REMOVE is required for remove_key action');
+                process.exit(1);
+              }
+              
+              const updatedKeys = currentKeys.filter(k => k !== keyToRemove.trim());
+              
+              if (updatedKeys.length === currentKeys.length) {
+                console.log('⚠️  Key not found in the list');
+                return;
+              }
+              
+              await updateSecret('VALID_KEYS', updatedKeys.join(','));
+              console.log('✅ Key removed successfully');
+              console.log(`✅ Total keys now: ${updatedKeys.length}`);
+              return;
+            }
+          }
+          
+          main().catch(error => {
+            console.error('❌ Error:', error.message);
+            process.exit(1);
+          });
+          EOF
+      
+      - name: Install libsodium
+        run: npm install libsodium-wrappers
+        if: github.event.inputs.action != 'list_keys'
+      
+      - name: Trigger deployment
+        if: github.event.inputs.action != 'list_keys'
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.EBIZCARD_PAT_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/dispatches \
+            -d '{"event_type":"deploy"}'
