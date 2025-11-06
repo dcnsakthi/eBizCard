@@ -1,0 +1,99 @@
+name: Remove Used Key
+
+on:
+  repository_dispatch:
+    types: [remove-key]
+
+jobs:
+  remove-key:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          npm install @octokit/rest
+          npm install libsodium-wrappers
+      
+      - name: Remove Key and Redeploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.EBIZCARD_PAT_TOKEN }}
+          VALID_KEYS: ${{ secrets.VALID_KEYS }}
+          USED_KEY: ${{ github.event.client_payload.key }}
+        run: |
+          node << 'EOF'
+          const { Octokit } = require('@octokit/rest');
+          const sodium = require('libsodium-wrappers');
+          
+          const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+          const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+          
+          async function getPublicKey() {
+            const { data } = await octokit.actions.getRepoPublicKey({
+              owner,
+              repo
+            });
+            return data;
+          }
+          
+          async function encryptSecret(secretValue, publicKey) {
+            await sodium.ready;
+            const binkey = sodium.from_base64(publicKey, sodium.base64_variants.ORIGINAL);
+            const binsec = sodium.from_string(secretValue);
+            const encBytes = sodium.crypto_box_seal(binsec, binkey);
+            return sodium.to_base64(encBytes, sodium.base64_variants.ORIGINAL);
+          }
+          
+          async function updateSecret(name, value) {
+            const publicKey = await getPublicKey();
+            const encryptedValue = await encryptSecret(value, publicKey.key);
+            
+            await octokit.actions.createOrUpdateRepoSecret({
+              owner,
+              repo,
+              secret_name: name,
+              encrypted_value: encryptedValue,
+              key_id: publicKey.key_id
+            });
+          }
+          
+          async function main() {
+            const usedKey = process.env.USED_KEY;
+            const keysString = process.env.VALID_KEYS || '';
+            const currentKeys = keysString.split(',').map(k => k.trim()).filter(k => k);
+            
+            console.log(`Removing used key: ${usedKey}`);
+            console.log(`Current keys count: ${currentKeys.length}`);
+            
+            const updatedKeys = currentKeys.filter(k => k !== usedKey);
+            
+            if (updatedKeys.length === currentKeys.length) {
+              console.log('⚠️  Key not found or already removed');
+              return;
+            }
+            
+            await updateSecret('VALID_KEYS', updatedKeys.join(','));
+            console.log('✅ Key removed successfully');
+            console.log(`✅ Remaining keys: ${updatedKeys.length}`);
+          }
+          
+          main().catch(error => {
+            console.error('❌ Error:', error.message);
+            process.exit(1);
+          });
+          EOF
+      
+      - name: Trigger redeployment
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.EBIZCARD_PAT_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/generate-keys.yml/dispatches \
+            -d '{"ref":"main"}'

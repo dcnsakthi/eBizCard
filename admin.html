@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eBizCard Admin - Key Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #f05454 0%, #dc3545 100%);
+            box-shadow: 0 4px 15px rgba(240, 84, 84, 0.4);
+        }
+        
+        .btn-danger:hover {
+            box-shadow: 0 6px 20px rgba(240, 84, 84, 0.6);
+        }
+        
+        input[type="text"],
+        input[type="password"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .key-list {
+            max-height: 400px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .key-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .key-text {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            flex-grow: 1;
+            margin-right: 15px;
+            word-break: break-all;
+        }
+        
+        .key-url {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .message.visible {
+            display: block;
+        }
+        
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .instructions code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 Key Management</h1>
+        <p class="subtitle">Manage one-time access keys for eBizCard</p>
+        
+        <div class="instructions">
+            <h3>📋 Setup Instructions</h3>
+            <ol>
+                <li>Go to your GitHub repository → Settings → Secrets and variables → Actions</li>
+                <li>Create a secret named <code>VALID_KEYS</code> with comma-separated keys</li>
+                <li>Create a secret named <code>EBIZCARD_PAT_TOKEN</code> with your GitHub Personal Access Token (with repo and workflow permissions)</li>
+                <li>Use GitHub Actions workflows to manage keys:
+                    <ul>
+                        <li><strong>manage-keys.yml</strong>: Add, remove, or list keys</li>
+                        <li><strong>generate-keys.yml</strong>: Deploy site with updated keys</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+        
+        <div class="section">
+            <h2>Current Keys</h2>
+            <div id="message" class="message"></div>
+            <button class="btn" onclick="loadKeys()">🔄 Refresh Keys</button>
+            <div id="keyList" class="key-list">
+                <p style="color: #666; text-align: center;">Click "Refresh Keys" to load current keys</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Quick Actions</h2>
+            <p style="color: #666; margin-bottom: 15px;">
+                These actions trigger GitHub Actions workflows. You'll need to go to your repository's Actions tab to see the results.
+            </p>
+            <button class="btn" onclick="triggerWorkflow('add_keys', 1)">➕ Generate 1 Key</button>
+            <button class="btn" onclick="triggerWorkflow('add_keys', 5)">➕ Generate 5 Keys</button>
+            <button class="btn" onclick="triggerWorkflow('add_keys', 10)">➕ Generate 10 Keys</button>
+            <button class="btn" onclick="triggerWorkflow('list_keys')">📋 List All Keys</button>
+        </div>
+        
+        <div class="section">
+            <h2>Remove Specific Key</h2>
+            <input type="text" id="keyToRemove" placeholder="Paste the key to remove">
+            <button class="btn btn-danger" onclick="removeKey()">🗑️ Remove Key</button>
+        </div>
+        
+        <div class="section">
+            <h2>Manual Key Management</h2>
+            <p style="color: #666; margin-bottom: 15px;">
+                To manually add or remove keys:
+            </p>
+            <ol style="margin-left: 20px; color: #666;">
+                <li>Go to Settings → Secrets and variables → Actions → VALID_KEYS</li>
+                <li>Edit the secret (comma-separated list of keys)</li>
+                <li>Trigger the "Generate and Deploy with Keys" workflow to redeploy</li>
+            </ol>
+        </div>
+    </div>
+    
+    <script>
+        const REPO_OWNER = 'dcnsakthi'; // Update with your GitHub username
+        const REPO_NAME = 'eBizCard';   // Update with your repo name
+        
+        function showMessage(message, type = 'success') {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = message;
+            messageEl.className = `message ${type} visible`;
+            setTimeout(() => {
+                messageEl.classList.remove('visible');
+            }, 5000);
+        }
+        
+        async function loadKeys() {
+            try {
+                const response = await fetch('keys.json');
+                if (!response.ok) {
+                    throw new Error('Failed to load keys');
+                }
+                
+                const data = await response.json();
+                const keyList = document.getElementById('keyList');
+                
+                if (!data.keys || data.keys.length === 0) {
+                    keyList.innerHTML = '<p style="color: #666; text-align: center;">No keys found. Generate some keys using GitHub Actions.</p>';
+                    return;
+                }
+                
+                keyList.innerHTML = data.keys.map((key, index) => `
+                    <div class="key-item">
+                        <div style="flex-grow: 1;">
+                            <div class="key-text">${key}</div>
+                            <div class="key-url">https://${REPO_OWNER}.github.io/${REPO_NAME}/?key=${key}</div>
+                        </div>
+                        <button class="btn btn-danger" onclick="removeSpecificKey('${key}')">Remove</button>
+                    </div>
+                `).join('');
+                
+                showMessage(`Loaded ${data.keys.length} key(s)`, 'success');
+            } catch (error) {
+                showMessage('Error loading keys: ' + error.message, 'error');
+            }
+        }
+        
+        function triggerWorkflow(action, numKeys = null) {
+            const url = `https://github.com/${REPO_OWNER}/${REPO_NAME}/actions/workflows/manage-keys.yml`;
+            showMessage(`Opening GitHub Actions to trigger workflow. Action: ${action}`, 'success');
+            window.open(url, '_blank');
+        }
+        
+        function removeKey() {
+            const key = document.getElementById('keyToRemove').value.trim();
+            if (!key) {
+                showMessage('Please enter a key to remove', 'error');
+                return;
+            }
+            
+            removeSpecificKey(key);
+        }
+        
+        function removeSpecificKey(key) {
+            const url = `https://github.com/${REPO_OWNER}/${REPO_NAME}/actions/workflows/manage-keys.yml`;
+            showMessage(`Opening GitHub Actions to remove key. You'll need to manually trigger the remove_key action.`, 'success');
+            document.getElementById('keyToRemove').value = key;
+            window.open(url, '_blank');
+        }
+        
+        // Load keys on page load
+        loadKeys();
+    </script>
+</body>
+</html>

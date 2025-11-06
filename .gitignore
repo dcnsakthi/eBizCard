@@ -11,6 +11,10 @@
 *.sln.docstates
 *.env
 
+# eBizCard specific - never commit sensitive keys
+keys.json
+config.js
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
