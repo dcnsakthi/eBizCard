@@ -1,0 +1,197 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 500px;
+}
+
+.loading {
+    background: white;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.loading p {
+    font-size: 18px;
+    color: #667eea;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+.hidden {
+    display: none !important;
+}
+
+.error-message {
+    background: white;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.error-message h2 {
+    color: #e74c3c;
+    margin-bottom: 15px;
+    font-size: 28px;
+}
+
+.error-message p {
+    color: #666;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.card-container {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.business-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+.card-header h1 {
+    font-size: 32px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.card-header p {
+    font-size: 18px;
+    opacity: 0.95;
+}
+
+.card-body {
+    padding: 30px;
+}
+
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 16px;
+    color: #333;
+}
+
+.info-item .icon {
+    font-size: 24px;
+    width: 30px;
+    text-align: center;
+}
+
+.info-item a {
+    color: #667eea;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.info-item a:hover {
+    color: #764ba2;
+}
+
+.card-footer {
+    padding: 0 30px 30px;
+    text-align: center;
+}
+
+.btn-save {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.btn-save:active {
+    transform: translateY(0);
+}
+
+.security-notice {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.security-notice p {
+    color: #555;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+    .card-header h1 {
+        font-size: 26px;
+    }
+    
+    .card-header p {
+        font-size: 16px;
+    }
+    
+    .info-item {
+        font-size: 14px;
+    }
+}
