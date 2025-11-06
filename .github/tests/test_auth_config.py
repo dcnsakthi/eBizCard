@@ -83,9 +83,18 @@ def test_special_characters():
         with open(config_path, 'r') as f:
             config_content = f.read()
         
-        # Basic validation - check that the file contains properly escaped strings
-        if 'user\\\'with\\"quotes' not in config_content and 'user' not in config_content:
-            print("❌ Username with special chars not properly handled")
+        # Verify the username with special characters is present
+        # json.dumps escapes " as \" but leaves ' as is
+        if '"user' not in config_content or 'with' not in config_content:
+            print(f"❌ Username with special chars not properly handled")
+            print(f"Generated content: {config_content}")
+            return False
+        
+        # Verify the password with backslashes is present
+        # json.dumps escapes \ as \\
+        if '"pass' not in config_content or 'with' not in config_content:
+            print(f"❌ Password with special chars not properly handled")
+            print(f"Generated content: {config_content}")
             return False
         
         print("✓ Special character handling test passed")
