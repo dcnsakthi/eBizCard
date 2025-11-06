@@ -6,8 +6,8 @@ This guide will help you set up the eBizCard application with one-time access ke
 
 The system works as follows:
 1. One-time access keys are stored as GitHub Secrets (never committed to the repository)
-2. During deployment, GitHub Actions generates a `keys.json` file from the secrets
-3. The `keys.json` file is included in the GitHub Pages deployment
+2. During deployment, GitHub Actions **injects** the keys directly into HTML files as JavaScript variables
+3. No `keys.json` file is created - keys are embedded in the deployed HTML
 4. Users access the business card with a one-time key via URL parameter
 5. After a key is used, it should be manually removed from GitHub Secrets
 
@@ -43,6 +43,14 @@ The system works as follows:
 - **Name**: `VALID_KEYS`
 - **Value**: Comma-separated list of keys (leave empty for now, or add initial keys)
 - **Example**: `key1,key2,key3`
+
+#### Secret 3: `ADMIN_AUTH_USER_NAME`
+- **Name**: `ADMIN_AUTH_USER_NAME`
+- **Value**: Your desired admin username (e.g., `admin`)
+
+#### Secret 4: `ADMIN_AUTH_SECRET_KEY`
+- **Name**: `ADMIN_AUTH_SECRET_KEY`
+- **Value**: Your secure admin password (use a strong password!)
 
 ### Step 3: Update Configuration
 
@@ -100,9 +108,11 @@ The system works as follows:
 ### Method 2: Using the Admin Panel
 
 1. Open `https://your-username.github.io/eBizCard/admin.html`
-2. Click "Refresh Keys" to see current keys
-3. Use the buttons to trigger GitHub Actions workflows
-4. Click on specific keys to remove them
+2. **Login** with your admin credentials (from GitHub Secrets)
+3. Click "Refresh Keys" to see current keys
+4. Use the buttons to trigger GitHub Actions workflows
+5. Click on specific keys to remove them
+6. **Logout** when done for security
 
 ### Method 3: Manual Management
 
@@ -132,11 +142,13 @@ Each link can only be used once (in theory - see limitations below).
 
 Since GitHub Pages serves static content, there are some important limitations:
 
-1. **Keys are not automatically deleted after use**: When a user visits a link, the key is validated, but it cannot be automatically removed from the `keys.json` file because it's a static site.
+1. **Keys are not automatically deleted after use**: When a user visits a link, the key is validated, but it cannot be automatically removed because the keys are embedded in the deployed HTML.
 
-2. **Manual key removal required**: After sharing a key and confirming it was used, you should manually remove it using one of the methods above.
+2. **Manual key removal required**: After sharing a key and confirming it was used, you should manually remove it using one of the methods above, then redeploy.
 
-3. **Keys are visible in keys.json**: Anyone who knows to look at `https://your-username.github.io/eBizCard/keys.json` can see the current valid keys. This is a limitation of static hosting.
+3. **Keys are visible in HTML source**: Anyone who views the page source can see the `VALID_KEYS_FROM_SECRET` variable. This is a limitation of static hosting.
+
+4. **Redeployment required after key changes**: Any change to keys requires triggering the deployment workflow again.
 
 ## 🔒 Security Recommendations
 
@@ -169,11 +181,12 @@ After making changes, commit and push. The site will automatically redeploy.
 - Make sure the `VALID_KEYS` secret is set correctly
 - Check that the GitHub Actions workflow completed successfully
 - Verify that GitHub Pages is enabled and pointing to GitHub Actions
+- View page source to verify `VALID_KEYS_FROM_SECRET` is present
 
 ### "Invalid or expired access key" error
 - The key might have been removed from `VALID_KEYS`
 - The deployment might not have completed yet
-- Check the `keys.json` file to verify the key is present
+- Check the page source to verify the key is in `VALID_KEYS_FROM_SECRET`
 
 ### Workflow fails
 - Verify that `EBIZCARD_PAT_TOKEN` secret is set correctly
@@ -187,8 +200,8 @@ After making changes, commit and push. The site will automatically redeploy.
 - `styles.css`: Styling for the business card
 - `admin.html`: Admin panel for key management
 - `generator.html`: Old generator (can be removed)
-- `keys.json`: Generated during deployment (not in repo)
-- `.github/workflows/generate-keys.yml`: Main deployment workflow
+- `keys.json`: **REMOVED** - No longer used
+- `.github/workflows/generate-keys.yml`: Main deployment workflow with secret injection
 - `.github/workflows/manage-keys.yml`: Key management workflow
 - `.github/workflows/remove-used-key.yml`: Automatic key removal (triggered via API)
 

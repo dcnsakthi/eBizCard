@@ -47,19 +47,19 @@
         }
     }
     
-    // Validate the access key by checking keys.json
+    // Validate the access key by checking VALID_KEYS from environment
     async function validateKey(key) {
         try {
-            const response = await fetch('keys.json');
-            
-            if (!response.ok) {
-                throw new Error('Failed to load keys');
+            // VALID_KEYS_FROM_SECRET is injected during deployment from GitHub Secrets
+            // It's a comma-separated string of valid keys
+            if (typeof VALID_KEYS_FROM_SECRET === 'undefined') {
+                throw new Error('VALID_KEYS not configured. Please deploy via GitHub Actions.');
             }
             
-            const data = await response.json();
-            const isValid = data.keys.includes(key);
+            // Split comma-separated keys and trim whitespace
+            const validKeys = VALID_KEYS_FROM_SECRET.split(',').map(k => k.trim()).filter(k => k);
+            const isValid = validKeys.includes(key);
             
-            // If valid, mark this key as used by removing it
             if (isValid) {
                 // Note: In a static site, we can't actually remove the key server-side
                 // The key should be manually removed from GitHub Secrets after use

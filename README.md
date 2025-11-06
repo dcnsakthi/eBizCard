@@ -19,6 +19,8 @@ A secure, one-time access electronic business card system powered by GitHub Page
    - Go to Settings → Secrets and variables → Actions
    - Create `EBIZCARD_PAT_TOKEN` with your GitHub Personal Access Token
    - Create `VALID_KEYS` with comma-separated keys (or leave empty)
+   - Create `ADMIN_AUTH_USER_NAME` with your admin username
+   - Create `ADMIN_AUTH_SECRET_KEY` with your admin password
 
 3. **Update admin.html**:
    - Edit `REPO_OWNER` and `REPO_NAME` constants
@@ -47,6 +49,15 @@ For detailed setup instructions, see [SETUP.md](SETUP.md)
 
 ### Admin Panel
 Access the admin panel at: `https://your-username.github.io/eBizCard/admin.html`
+
+**Features:**
+- 🔐 Secure login with username/password
+- 🔑 View all active keys
+- ➕ Quick key generation buttons
+- 🗑️ Remove specific keys
+- 🚪 Logout functionality
+
+Login credentials are set via GitHub Secrets (`ADMIN_AUTH_USER_NAME` and `ADMIN_AUTH_SECRET_KEY`).
 
 ## 📤 Share Your Card
 
@@ -95,10 +106,11 @@ eBizCard/
 
 ## ⚠️ Important Notes
 
-- Keys are **not automatically removed** after use (GitHub Pages limitation)
-- You must manually remove used keys via GitHub Actions
-- The `keys.json` file is public - anyone can see valid keys
+- Keys are **not automatically deleted** after use (GitHub Pages limitation)
+- You must manually remove used keys via GitHub Actions and redeploy
+- Keys are **embedded in HTML source** - anyone viewing source can see them
 - This is best for controlled distribution where you can track usage
+- Redeployment required after any key changes
 
 ## 🔒 Security Considerations
 

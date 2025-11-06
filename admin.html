@@ -18,6 +18,29 @@
             padding: 40px 20px;
         }
         
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .login-container h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+        
+        .login-subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
         .container {
             max-width: 900px;
             margin: 0 auto;
@@ -27,16 +50,46 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
         
-        h1 {
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .header-left h1 {
             color: #667eea;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             font-size: 32px;
         }
         
         .subtitle {
             color: #666;
-            margin-bottom: 30px;
             font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
         }
         
         .section {
@@ -79,6 +132,17 @@
         
         .btn-danger:hover {
             box-shadow: 0 6px 20px rgba(240, 84, 84, 0.6);
+        }
+        
+        .btn-logout {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+        
+        .btn-logout:hover {
+            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.6);
         }
         
         input[type="text"],
@@ -182,12 +246,40 @@
             border-radius: 4px;
             font-family: 'Courier New', monospace;
         }
+        
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔑 Key Management</h1>
-        <p class="subtitle">Manage one-time access keys for eBizCard</p>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <h1>🔐 Admin Login</h1>
+        <p class="login-subtitle">Enter your credentials to access the admin panel</p>
+        <div id="loginMessage" class="message"></div>
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">Login</button>
+        </form>
+    </div>
+    
+    <!-- Admin Panel (Hidden by default) -->
+    <div id="adminPanel" class="container hidden">
+        <div class="header">
+            <div class="header-left">
+                <h1>🔑 Key Management</h1>
+                <p class="subtitle">Manage one-time access keys for eBizCard</p>
+            </div>
+            <button class="btn btn-logout" onclick="handleLogout()">🚪 Logout</button>
+        </div>
         
         <div class="instructions">
             <h3>📋 Setup Instructions</h3>
@@ -195,6 +287,7 @@
                 <li>Go to your GitHub repository → Settings → Secrets and variables → Actions</li>
                 <li>Create a secret named <code>VALID_KEYS</code> with comma-separated keys</li>
                 <li>Create a secret named <code>EBIZCARD_PAT_TOKEN</code> with your GitHub Personal Access Token (with repo and workflow permissions)</li>
+                <li>Create secrets <code>ADMIN_AUTH_USER_NAME</code> and <code>ADMIN_AUTH_SECRET_KEY</code> for admin authentication</li>
                 <li>Use GitHub Actions workflows to manage keys:
                     <ul>
                         <li><strong>manage-keys.yml</strong>: Add, remove, or list keys</li>
@@ -244,8 +337,60 @@
     </div>
     
     <script>
-        const REPO_OWNER = 'dcnsakthi'; // Update with your GitHub username
-        const REPO_NAME = 'eBizCard';   // Update with your repo name
+        const REPO_OWNER = 'dcnsakthi';
+        const REPO_NAME = 'eBizCard';
+        
+        // Authentication credentials (these will be injected from GitHub Secrets during deployment)
+        const ADMIN_CREDENTIALS = {
+            username: 'ADMIN_AUTH_USER_NAME_PLACEHOLDER',
+            password: 'ADMIN_AUTH_SECRET_KEY_PLACEHOLDER'
+        };
+        
+        // Check if user is already logged in
+        function checkAuth() {
+            const authToken = sessionStorage.getItem('adminAuth');
+            if (authToken === btoa(ADMIN_CREDENTIALS.username + ':' + ADMIN_CREDENTIALS.password)) {
+                showAdminPanel();
+            }
+        }
+        
+        // Handle login
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginMessage = document.getElementById('loginMessage');
+            
+            // Validate credentials
+            if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+                // Store auth token in session storage
+                sessionStorage.setItem('adminAuth', btoa(username + ':' + password));
+                showAdminPanel();
+            } else {
+                loginMessage.textContent = 'Invalid username or password';
+                loginMessage.className = 'message error visible';
+                setTimeout(() => {
+                    loginMessage.classList.remove('visible');
+                }, 3000);
+            }
+        }
+        
+        // Show admin panel
+        function showAdminPanel() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('adminPanel').classList.remove('hidden');
+            loadKeys();
+        }
+        
+        // Handle logout
+        function handleLogout() {
+            sessionStorage.removeItem('adminAuth');
+            document.getElementById('adminPanel').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
         
         function showMessage(message, type = 'success') {
             const messageEl = document.getElementById('message');
@@ -258,20 +403,20 @@
         
         async function loadKeys() {
             try {
-                const response = await fetch('keys.json');
-                if (!response.ok) {
-                    throw new Error('Failed to load keys');
+                // VALID_KEYS_FROM_SECRET is injected during deployment
+                if (typeof VALID_KEYS_FROM_SECRET === 'undefined') {
+                    throw new Error('VALID_KEYS not configured. Please deploy via GitHub Actions.');
                 }
                 
-                const data = await response.json();
+                const keys = VALID_KEYS_FROM_SECRET.split(',').map(k => k.trim()).filter(k => k);
                 const keyList = document.getElementById('keyList');
                 
-                if (!data.keys || data.keys.length === 0) {
+                if (keys.length === 0) {
                     keyList.innerHTML = '<p style="color: #666; text-align: center;">No keys found. Generate some keys using GitHub Actions.</p>';
                     return;
                 }
                 
-                keyList.innerHTML = data.keys.map((key, index) => `
+                keyList.innerHTML = keys.map((key, index) => `
                     <div class="key-item">
                         <div style="flex-grow: 1;">
                             <div class="key-text">${key}</div>
@@ -281,7 +426,7 @@
                     </div>
                 `).join('');
                 
-                showMessage(`Loaded ${data.keys.length} key(s)`, 'success');
+                showMessage(`Loaded ${keys.length} key(s)`, 'success');
             } catch (error) {
                 showMessage('Error loading keys: ' + error.message, 'error');
             }
@@ -310,8 +455,9 @@
             window.open(url, '_blank');
         }
         
-        // Load keys on page load
-        loadKeys();
+        // Check authentication on page load
+        checkAuth();
     </script>
+    <!-- VALID_KEYS will be injected here during deployment -->
 </body>
 </html>

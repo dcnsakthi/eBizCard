@@ -36,43 +36,38 @@ jobs:
         with:
           node-version: '20'
       
-      - name: Generate keys.json from secrets
+      - name: Inject secrets into index.html
         env:
           VALID_KEYS: ${{ secrets.VALID_KEYS }}
+          ADMIN_AUTH_USER_NAME: ${{ secrets.ADMIN_AUTH_USER_NAME }}
+          ADMIN_AUTH_SECRET_KEY: ${{ secrets.ADMIN_AUTH_SECRET_KEY }}
         run: |
-          # Create keys.json from the VALID_KEYS secret
-          # Expected format: comma-separated list of keys
+          echo "Injecting VALID_KEYS into HTML files..."
           
-          if [ -z "$VALID_KEYS" ]; then
-            echo "Warning: VALID_KEYS secret is not set. Creating empty keys file."
-            echo '{"keys":[]}' > keys.json
+          # Escape the keys for JavaScript
+          ESCAPED_KEYS=$(echo "$VALID_KEYS" | sed 's/"/\\"/g')
+          
+          # Inject into index.html before the closing </body> tag
+          sed -i 's|<script src="app.js"></script>|<script>const VALID_KEYS_FROM_SECRET = "'"$ESCAPED_KEYS"'";</script>\n    <script src="app.js"></script>|' index.html
+          
+          echo "VALID_KEYS injected into index.html"
+          
+          # Inject into admin.html before the comment
+          sed -i 's|<!-- VALID_KEYS will be injected here during deployment -->|<script>const VALID_KEYS_FROM_SECRET = "'"$ESCAPED_KEYS"'";</script>|' admin.html
+          
+          echo "VALID_KEYS injected into admin.html"
+          
+          # Inject admin credentials into admin.html
+          if [ ! -z "$ADMIN_AUTH_USER_NAME" ] && [ ! -z "$ADMIN_AUTH_SECRET_KEY" ]; then
+            echo "Injecting admin credentials into admin.html..."
+            sed -i "s/ADMIN_AUTH_USER_NAME_PLACEHOLDER/$ADMIN_AUTH_USER_NAME/g" admin.html
+            sed -i "s/ADMIN_AUTH_SECRET_KEY_PLACEHOLDER/$ADMIN_AUTH_SECRET_KEY/g" admin.html
+            echo "Admin credentials injected successfully"
           else
-            # Convert comma-separated keys to JSON array
-            echo '{"keys":[' > keys.json
-            
-            IFS=',' read -ra KEYS_ARRAY <<< "$VALID_KEYS"
-            FIRST=true
-            
-            for key in "${KEYS_ARRAY[@]}"; do
-              # Trim whitespace
-              key=$(echo "$key" | xargs)
-              
-              if [ ! -z "$key" ]; then
-                if [ "$FIRST" = true ]; then
-                  FIRST=false
-                else
-                  echo ',' >> keys.json
-                fi
-                echo -n "\"$key\"" >> keys.json
-              fi
-            done
-            
-            echo '' >> keys.json
-            echo ']}' >> keys.json
+            echo "Warning: ADMIN_AUTH_USER_NAME or ADMIN_AUTH_SECRET_KEY not set. Using placeholder values."
           fi
           
-          echo "Generated keys.json:"
-          cat keys.json
+          echo "All secrets injected successfully"
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
