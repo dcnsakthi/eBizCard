@@ -26,6 +26,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
+      - name: Inject secrets into config.js
+        env:
+          ADMIN_USERNAME: ${{ secrets.ADMIN_AUTH_USER_NAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_AUTH_SECRET_KEY }}
+        run: |
+          # Generate config.js with secrets from GitHub repository secrets
+          python3 .github/scripts/generate_config.py
+      
       - name: Setup Pages
         uses: actions/configure-pages@v4
       
