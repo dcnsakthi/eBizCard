@@ -36,24 +36,36 @@ Simply scan the QR code or click the link you received. You'll see the contact i
    };
    ```
 
-2. **Generate Access Keys**: Open `generator.html` in your browser
+2. **Configure Admin Authentication**: Edit `config.js` to set your admin credentials:
+   ```javascript
+   const CONFIG = {
+       ADMIN_AUTH_USER_NAME: 'your_admin_username',
+       ADMIN_AUTH_SECRET_KEY: 'your_secure_password'
+   };
+   ```
+   **Important**: For production use, consider implementing server-side authentication for better security.
+
+3. **Generate Access Keys**: Open `generator.html` in your browser
+   - You will be prompted to enter admin credentials
+   - Enter the username and password configured in `config.js`
    - Specify how many keys you need
    - Click "Generate Keys"
    - Download the `keys.json` file
    - Replace the existing `keys.json` with your generated file
 
-3. **Deploy to GitHub Pages**:
+4. **Deploy to GitHub Pages**:
    - Push your changes to GitHub
    - Enable GitHub Pages in repository settings
    - Select the main/master branch as the source
 
-4. **Share Your Card**:
+5. **Share Your Card**:
    - Download the QR codes from the generator
    - Print them on business cards, stickers, or NFC tags
    - Share the URLs directly via email or messaging
 
 ## Security Features
 
+- **Admin Authentication**: QR code generation is protected by Basic Authentication
 - **One-Time Use**: Keys are marked as used after first access (stored in localStorage)
 - **Cryptographically Secure**: Keys are generated using `crypto.getRandomValues()`
 - **No Server Required**: Fully client-side validation for privacy
@@ -65,7 +77,8 @@ Simply scan the QR code or click the link you received. You'll see the contact i
 ├── index.html          # Main business card display page
 ├── app.js             # Application logic and key validation
 ├── styles.css         # Styling for the business card
-├── generator.html     # Key generator tool
+├── generator.html     # Key generator tool (admin access only)
+├── config.js          # Admin authentication configuration
 ├── keys.json          # Database of valid access keys
 └── _config.yml        # GitHub Pages configuration
 ```
