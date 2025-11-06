@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>eBizCard Key Generator</title>
+    <script src="config.js"></script>
     <style>
         * {
             margin: 0;
@@ -198,10 +199,113 @@
             color: #666;
             word-break: break-all;
         }
+        
+        /* Authentication Modal Styles */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .auth-overlay.hidden {
+            display: none;
+        }
+        
+        .auth-modal {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .auth-modal h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        
+        .auth-modal p {
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+        
+        .auth-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            margin-bottom: 15px;
+        }
+        
+        .auth-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .auth-error {
+            color: #dc3545;
+            font-size: 14px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .auth-error.visible {
+            display: block;
+        }
+        
+        .page-content {
+            display: none;
+        }
+        
+        .page-content.visible {
+            display: block;
+        }
     </style>
     <script src="qrcode.min.js"></script>
 </head>
 <body>
+    <!-- Authentication Modal -->
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-modal">
+            <h2>🔐 Admin Authentication</h2>
+            <p>Please enter your credentials to access the QR Code Generator</p>
+            <form id="authForm" onsubmit="return false;">
+                <input 
+                    type="text" 
+                    id="username" 
+                    class="auth-input" 
+                    placeholder="Username" 
+                    autocomplete="username"
+                    required
+                >
+                <input 
+                    type="password" 
+                    id="password" 
+                    class="auth-input" 
+                    placeholder="Password" 
+                    autocomplete="current-password"
+                    required
+                >
+                <div id="authError" class="auth-error">Invalid username or password. Please try again.</div>
+                <button type="submit" class="btn" onclick="authenticate()">Login</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Main Content (hidden until authenticated) -->
+    <div id="pageContent" class="page-content">
     <div class="container">
         <h1>🔐 eBizCard Key Generator</h1>
         <p class="subtitle">Generate secure one-time access keys for your eBizCard</p>
@@ -228,6 +332,7 @@
             </div>
         </div>
     </div>
+    </div><!-- End of page-content -->
     
     <script>
         let generatedKeys = [];
@@ -343,6 +448,53 @@
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
         }
+        
+        // Authentication function
+        function authenticate() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const authError = document.getElementById('authError');
+            
+            // Validate credentials against config
+            if (username === CONFIG.ADMIN_AUTH_USER_NAME && password === CONFIG.ADMIN_AUTH_SECRET_KEY) {
+                // Authentication successful
+                document.getElementById('authOverlay').classList.add('hidden');
+                document.getElementById('pageContent').classList.add('visible');
+                authError.classList.remove('visible');
+                
+                // Store authenticated session (valid for browser session)
+                sessionStorage.setItem('ebizcard_admin_authenticated', 'true');
+            } else {
+                // Authentication failed
+                authError.classList.add('visible');
+                document.getElementById('password').value = '';
+                document.getElementById('username').focus();
+            }
+        }
+        
+        // Check if already authenticated on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const isAuthenticated = sessionStorage.getItem('ebizcard_admin_authenticated');
+            
+            if (isAuthenticated === 'true') {
+                // Skip authentication modal if already authenticated
+                document.getElementById('authOverlay').classList.add('hidden');
+                document.getElementById('pageContent').classList.add('visible');
+            }
+            
+            // Allow Enter key to submit authentication form
+            document.getElementById('password').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    authenticate();
+                }
+            });
+            
+            document.getElementById('username').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    authenticate();
+                }
+            });
+        });
     </script>
 </body>
 </html>
