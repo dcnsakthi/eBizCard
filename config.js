@@ -8,6 +8,7 @@ const CONFIG = {
     ADMIN_AUTH_USER_NAME: 'admin',
     
     // Admin password for accessing the QR code generator
+    // IMPORTANT: Change this default password to a strong, unique password
     // In production, this should be hashed and validated server-side
-    ADMIN_AUTH_SECRET_KEY: 'secure_password_123'
+    ADMIN_AUTH_SECRET_KEY: 'ChangeThisPassword!2024'
 };

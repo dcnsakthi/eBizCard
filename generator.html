@@ -272,6 +272,19 @@
         .page-content.visible {
             display: block;
         }
+        
+        /* Visually hidden but accessible to screen readers */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            margin: -1px;
+            padding: 0;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
     </style>
     <script src="qrcode.min.js"></script>
 </head>
@@ -281,25 +294,29 @@
         <div class="auth-modal">
             <h2>🔐 Admin Authentication</h2>
             <p>Please enter your credentials to access the QR Code Generator</p>
-            <form id="authForm" onsubmit="return false;">
+            <form id="authForm">
+                <label for="username" class="visually-hidden">Username</label>
                 <input 
                     type="text" 
                     id="username" 
                     class="auth-input" 
                     placeholder="Username" 
                     autocomplete="username"
+                    aria-label="Username"
                     required
                 >
+                <label for="password" class="visually-hidden">Password</label>
                 <input 
                     type="password" 
                     id="password" 
                     class="auth-input" 
                     placeholder="Password" 
                     autocomplete="current-password"
+                    aria-label="Password"
                     required
                 >
-                <div id="authError" class="auth-error">Invalid username or password. Please try again.</div>
-                <button type="submit" class="btn" onclick="authenticate()">Login</button>
+                <div id="authError" class="auth-error" role="alert" aria-live="polite">Invalid username or password. Please try again.</div>
+                <button type="submit" class="btn">Login</button>
             </form>
         </div>
     </div>
@@ -449,14 +466,35 @@
             window.URL.revokeObjectURL(url);
         }
         
+        // Constant-time string comparison to prevent timing attacks
+        function constantTimeCompare(a, b) {
+            if (a.length !== b.length) {
+                return false;
+            }
+            
+            let result = 0;
+            for (let i = 0; i < a.length; i++) {
+                result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+            }
+            
+            return result === 0;
+        }
+        
         // Authentication function
-        function authenticate() {
+        function authenticate(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const authError = document.getElementById('authError');
             
-            // Validate credentials against config
-            if (username === CONFIG.ADMIN_AUTH_USER_NAME && password === CONFIG.ADMIN_AUTH_SECRET_KEY) {
+            // Validate credentials against config using constant-time comparison
+            const usernameValid = constantTimeCompare(username, CONFIG.ADMIN_AUTH_USER_NAME);
+            const passwordValid = constantTimeCompare(password, CONFIG.ADMIN_AUTH_SECRET_KEY);
+            
+            if (usernameValid && passwordValid) {
                 // Authentication successful
                 document.getElementById('authOverlay').classList.add('hidden');
                 document.getElementById('pageContent').classList.add('visible');
@@ -482,18 +520,9 @@
                 document.getElementById('pageContent').classList.add('visible');
             }
             
-            // Allow Enter key to submit authentication form
-            document.getElementById('password').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    authenticate();
-                }
-            });
-            
-            document.getElementById('username').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    authenticate();
-                }
-            });
+            // Add form submit event listener
+            const authForm = document.getElementById('authForm');
+            authForm.addEventListener('submit', authenticate);
         });
     </script>
 </body>
