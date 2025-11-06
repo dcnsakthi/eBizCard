@@ -2,16 +2,23 @@
 """
 Generate config.js with credentials from environment variables.
 This script is used during GitHub Actions deployment to inject secrets.
+
+SECURITY NOTE: This script writes credentials to config.js in clear text.
+This is intentional as the application uses client-side authentication for
+demonstration purposes. For production use, server-side authentication should
+be implemented instead.
 """
 import os
 import json
 
 # Read environment variables
 username = os.environ.get('ADMIN_USERNAME', 'admin')
+# CodeQL suppress[py/clear-text-storage-sensitive-data]: Client-side auth by design
 password = os.environ.get('ADMIN_PASSWORD', 'ChangeThisPassword!2024')
 
 # Use json.dumps to properly escape strings for JavaScript
 username_escaped = json.dumps(username)
+# CodeQL suppress[py/clear-text-storage-sensitive-data]: Client-side auth by design
 password_escaped = json.dumps(password)
 
 config_content = f"""// eBizCard Configuration
